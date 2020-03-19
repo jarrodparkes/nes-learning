@@ -2,8 +2,18 @@
 
 A collection of NES programming lessons.
 
-## Tools Required
+## Tools
+
+### Required
 
 - Assembler: [NESASM](https://github.com/camsaul/nesasm)
 - Emulator: [Nestopia](http://nestopia.sourceforge.net)
-- _Text editor of choice_
+
+### Recommended
+
+- Atom: [Atom](https://atom.io)
+  - Syntax Highlighting: [Language-65ASM](https://atom.io/packages/language-65asm)
+
+### Installation Guides
+
+- [Mac](http://thevirtualmountain.com/nes/2017/03/06/getting-started-with-nes-game-development.html )
