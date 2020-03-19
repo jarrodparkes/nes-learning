@@ -11,7 +11,8 @@ A collection of NES programming lessons.
 
 ### Recommended
 
-- Atom: [Atom](https://atom.io)
+- Graphics Editor: [Tile Molester](http://www.romhacking.net/utilities/991/)
+- Text Editor: [Atom](https://atom.io)
   - Syntax Highlighting: [Language-65ASM](https://atom.io/packages/language-65asm)
 
 ### Installation Guides
