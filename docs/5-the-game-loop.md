@@ -1,16 +1,4 @@
-# Lecture
-
-NES development is vastly different than writing modern software. There is no operating system, software development kit (SDK), integrated development environment (IDE), etc. Instead, you have to do everything by hand.
-
-## Memory-Mapped Input/Output (I/O)
-
-[TBD]
-
-## The NES Memory Map
-
-[TBD]
-
-## "The Game Loop"
+# The Game Loop
 
 NES games fall into a category of software which have an input or "game" loop where they regularly check for user input. For NES games, the typical code path involves the following steps:
 

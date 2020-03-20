@@ -1,6 +1,6 @@
 # NES Learning
 
-A collection of NES programming lessons.
+A collection of NES programming examples.
 
 ## Tools
 

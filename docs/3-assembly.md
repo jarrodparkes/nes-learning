@@ -1,4 +1,4 @@
-# 6502 Assembly
+# Assembly
 
 Computers speak in binary or 1's and 0's. Humans can, but it is not convenient. Instead, it is easier for humans to use a machine-like language that can be easily translated (or assembled) into binary. For the NES, that language is 6502 assembly language.
 
