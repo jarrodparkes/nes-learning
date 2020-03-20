@@ -1,174 +1,263 @@
-  .inesprg 1   ; 1x 16KB PRG code
-  .ineschr 1   ; 1x  8KB CHR data
-  .inesmap 0   ; mapper 0 = NROM, no bank swapping
-  .inesmir 1   ; background mirroring
+;------------------------------------------------------------------------------------------\
+; [NES HEADER DIRECTIVES]
+  .inesprg 1  ; using 1x 16KB PRG bank
+  .ineschr 1  ; using 1x 8KB CHR bank
+  .inesmap 0  ; mapper 0 = NROM, is NROM-128 b/c using 1x 16Kib PRG bank
+  .inesmir 1  ; background mirroring
+;------------------------------------------------------------------------------------------/
 
-;;;;;;;;;;;;;;;
+;------------------------------------------------------------------------------------------\
+; [SYSTEM VARIABLES]
+PPU_CTRL      EQU $2000
+PPU_MASK      EQU $2001
+PPU_STATUS    EQU $2002
+PPU_OAM_ADDR  EQU $2003
+PPU_OAM_DATA  EQU $2004
+PPU_SCROLL    EQU $2005
+PPU_ADDR      EQU $2006
+PPU_DATA      EQU $2007
+PPU_OAM_DMA   EQU $4014
+PPU_FRAMECNT  EQU $4017
+DMC_FREQ      EQU $4010
+CTRL_PORT1    EQU $4016
+;------------------------------------------------------------------------------------------/
 
+;------------------------------------------------------------------------------------------\
+; [MAIN]
   .bank 0
-  .org $C000
-RESET:
-  SEI          ; disable IRQs
-  CLD          ; disable decimal mode
-  LDX #$40
-  STX $4017    ; disable APU frame IRQ
+  .org $C000          ; start location of bank 0 ($C000 in CPU memory space)
+Reset:
+  SEI                 ; disable IRQs
+  CLD                 ; disable decimal mode
+  LDX #$40            ; X = %01000000
+  STX PPU_FRAMECNT    ; disable APU frame IRQ
   LDX #$FF
-  TXS          ; Set up stack
-  INX          ; now X = 0
-  STX $2000    ; disable NMI
-  STX $2001    ; disable rendering
-  STX $4010    ; disable DMC IRQs
+  TXS                 ; set up stack
+  INX                 ; X = %00000000
+  STX PPU_CTRL        ; disable NMI (turn off vblank'ing)
+  STX PPU_MASK        ; disable rendering
+  STX DMC_FREQ        ; disable DMC IRQs
 
-vblankwait1:       ; First wait for vblank to make sure PPU is ready
-  BIT $2002
-  BPL vblankwait1
+WaitVBlank1:          ; wait for vblank to make sure PPU is ready
+  BIT PPU_STATUS
+  BPL WaitVBlank1
 
-clrmem:
-  LDA #$00
-  STA $0000, x
-  STA $0100, x
-  STA $0300, x
-  STA $0400, x
-  STA $0500, x
-  STA $0600, x
-  STA $0700, x
+ClrMem:
+  LDA #$00            ; A = %00000000
+  STA $0000, x        ; zero out value at this address
+  STA $0100, x        ; zero out value at this address
+  STA $0300, x        ; zero out value at this address
+  STA $0400, x        ; zero out value at this address
+  STA $0500, x        ; zero out value at this address
+  STA $0600, x        ; zero out value at this address
+  STA $0700, x        ; zero out value at this address
   LDA #$FE
-  STA $0200, x    ;move all sprites off screen
+  STA $0200, x        ; move sprite off screen
   INX
-  BNE clrmem
+  BNE ClrMem
 
-vblankwait2:      ; Second wait for vblank, PPU is ready after this
-  BIT $2002
-  BPL vblankwait2
+WaitVBlank2:          ; second wait for vblank, PPU is ready after this
+  BIT PPU_STATUS
+  BPL WaitVBlank2
 
 LoadPalettes:
-  LDA $2002    ; read PPU status to reset the high/low latch
+  LDA PPU_STATUS      ; tell PPU to expect the high byte next
   LDA #$3F
-  STA $2006    ; write the high byte of $3F00 address
+  STA PPU_ADDR        ; write the high byte of $3F00 address
   LDA #$00
-  STA $2006    ; write the low byte of $3F00 address
+  STA PPU_ADDR        ; write the low byte of $3F00 address
   LDX #$00
-LoadPalettesLoop:
-  LDA palette, x        ;load palette byte
-  STA $2007             ;write to PPU
-  INX                   ;set index to next byte
+
+LoadPalLoop:
+  LDA Palette, x      ; load palette byte
+  STA PPU_DATA        ; write to PPU
+  INX                 ; set index to next byte
   CPX #$20
-  BNE LoadPalettesLoop  ;if x = $20, 32 bytes copied, all done
+  BNE LoadPalLoop     ; if x = $20, 32 bytes copied, all done
 
-LoadMario:
-  ; row-1-left
-  LDA #$80
-  STA $0200        ; put sprite 0 in center ($80) of screen vert
-  STA $0203        ; put sprite 0 in center ($80) of screen horiz
+LoadMarioStanding:    ; draw each sprite moving from L-to-R, T-to-B
+  LDA #$40            ; sprite 1
+  STA $0200           ; set vertical position
+  LDA #$60
+  STA $0203           ; set horizontal position
   LDA #$00
-  STA $0201        ; tile number = 0
-  STA $0202        ; color = 0, no flipping
+  STA $0201           ; set tile
+  STA $0202           ; set color w/ no flipping
 
-  ; row-1-right
-  LDA #$80
+  LDA #$40            ; sprite 2
   STA $0204
-  LDA #$88
+  LDA #$68
   STA $0207
   LDA #$01
-  STA $0205        ; tile number = 1
+  STA $0205
   LDA #$00
-  STA $0206        ; color = 0, no flipping
+  STA $0206
 
-  ; row-2-left
-  LDA #$88
+  LDA #$48            ; sprite 3
   STA $0208
-  LDA #$80
+  LDA #$60
   STA $020B
   LDA #$02
-  STA $0209        ; tile number = 2
+  STA $0209
   LDA #$00
-  STA $020A        ; color = 0, no flipping
+  STA $020A
 
-  ; row-2-right
-  LDA #$88
+  LDA #$48            ; sprite 4
   STA $020C
-  LDA #$88
+  LDA #$68
   STA $020F
   LDA #$03
-  STA $020D        ; tile number = 3
+  STA $020D
   LDA #$00
-  STA $020E        ; color = 0, no flipping
+  STA $020E
 
-  ; row-3-left
-  LDA #$90
+  LDA #$50            ; sprite 5
   STA $0210
-  LDA #$80
+  LDA #$60
   STA $0213
   LDA #$04
-  STA $0211        ; tile number = 4
+  STA $0211
   LDA #$00
-  STA $0212        ; color = 0, no flipping
+  STA $0212
 
-  ; row-3-right
-  LDA #$90
+  LDA #$50            ; sprite 6
   STA $0214
-  LDA #$88
+  LDA #$68
   STA $0217
   LDA #$05
-  STA $0215        ; tile number = 5
+  STA $0215
   LDA #$00
-  STA $0216        ; color = 0, no flipping
+  STA $0216
 
-  ; row-4-left
-  LDA #$98
+  LDA #$58            ; sprite 7
   STA $0218
-  LDA #$80
+  LDA #$60
   STA $021B
   LDA #$06
-  STA $0219        ; tile number = 6
+  STA $0219
   LDA #$00
-  STA $021A        ; color = 0, no flipping
+  STA $021A
 
-  ; row-4-right
-  LDA #$98
+  LDA #$58            ; sprite 8
   STA $021C
-  LDA #$88
+  LDA #$68
   STA $021F
   LDA #$07
-  STA $021D        ; tile number = 7
+  STA $021D
   LDA #$00
-  STA $021E        ; color = 0, no flipping
+  STA $021E
 
-  LDA #%10000000   ; enable NMI, sprites from Pattern Table 0
-  STA $2000
+LoadMarioRunning:     ; draw mario running
+  LDA #$40            ; sprite 9
+  STA $0220
+  LDA #$80
+  STA $0223
+  LDA #$08
+  STA $0221
+  LDA #$00
+  STA $0222
 
-  LDA #%00010000   ; enable sprites
-  STA $2001
+  LDA #$40            ; sprite 10
+  STA $0224
+  LDA #$88
+  STA $0227
+  LDA #$09
+  STA $0225
+  LDA #$00
+  STA $0226
+
+  LDA #$48            ; sprite 11
+  STA $0228
+  LDA #$80
+  STA $022B
+  LDA #$0A
+  STA $0229
+  LDA #$00
+  STA $022A
+
+  LDA #$48            ; sprite 12
+  STA $022C
+  LDA #$88
+  STA $022F
+  LDA #$0B
+  STA $022D
+  LDA #$00
+  STA $022E
+
+  LDA #$50            ; sprite 13
+  STA $0230
+  LDA #$80
+  STA $0233
+  LDA #$0C
+  STA $0231
+  LDA #$00
+  STA $0232
+
+  LDA #$50            ; sprite 14
+  STA $0234
+  LDA #$88
+  STA $0237
+  LDA #$0D
+  STA $0235
+  LDA #$00
+  STA $0236
+
+  LDA #$58            ; sprite 15
+  STA $0238
+  LDA #$80
+  STA $023B
+  LDA #$0E
+  STA $0239
+  LDA #$00
+  STA $023A
+
+  LDA #$58            ; sprite 16
+  STA $023C
+  LDA #$88
+  STA $023F
+  LDA #$0F
+  STA $023D
+  LDA #$00
+  STA $023E
+
+FinishSprites:
+  LDA #%10000000      ; enable NMI so vblank'ing will start
+  STA PPU_CTRL
+
+  LDA #%00010000      ; enable sprites
+  STA PPU_MASK
 
 Forever:
-  JMP Forever     ;jump back to Forever, infinite loop
+  JMP Forever         ; loop forever
 
-NMI:
+VBlankDetected:
   LDA #$00
-  STA $2003  ; set the low byte (00) of the RAM address
+  STA $2003           ; set the low byte (00) of the RAM address
   LDA #$02
-  STA $4014  ; set the high byte (02) of the RAM address, start the transfer
+  STA $4014           ; set the high byte (02) of the RAM address, start the transfer
+  RTI                 ; return from interrupt
+;------------------------------------------------------------------------------------------/
 
-  RTI        ; return from interrupt
-
-;;;;;;;;;;;;;;
-
+;------------------------------------------------------------------------------------------\
+; [8KB PGR-ROM]
   .bank 1
   .org $E000
-palette:
+Palette:
   .db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
   .db $0F,$17,$30,$0C,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
+;------------------------------------------------------------------------------------------/
 
+;------------------------------------------------------------------------------------------\
+; [SYSTEM INTERRUPTS]
+  .org $FFFA
+  .dw VBlankDetected  ; if NMI occurs (once per frame if enabled), goto VBlankDetected
+  .dw Reset           ; if system is reset, goto Reset
+  .dw 0               ; external interrupt IRQ is not used in this tutorial
+;------------------------------------------------------------------------------------------/
 
-  .org $FFFA     ;first of the three vectors starts here
-  .dw NMI        ;when an NMI happens (once per frame if enabled) the
-                   ;processor will jump to the label NMI:
-  .dw RESET      ;when the processor first turns on or is reset, it will jump
-                   ;to the label RESET:
-  .dw 0          ;external interrupt IRQ is not used in this tutorial
-
-;;;;;;;;;;;;;;
-
+;------------------------------------------------------------------------------------------\
+; [CHR-ROM]
   .bank 2
   .org $0000
-  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+  .incbin "mario.chr" ; include 8KB graphics file from SMB1
+;------------------------------------------------------------------------------------------/

@@ -1,6 +1,6 @@
 # Lesson 1
 
-In this lesson, we will properly initialize the NES and draw a Mario sprite.
+In this lesson, we will properly initialize the NES and draw two Mario sprites.
 
 ## Assumptions
 
@@ -11,8 +11,15 @@ Before beginning, you should be familiar with the following topics:
 - read-only memory (ROM) versus random-access memory (RAM)
 - assembly-language programming
 
-## Run the Example Code
+## Cheat Sheet
 
 ```bash
+# build
 nesasm sprite.asm
+
+# run
+Nestopia sprite.nes
+
+# build-and-run
+./build-and-run.sh
 ```

@@ -9,11 +9,13 @@ A collection of NES programming lessons.
 - Assembler: [NESASM](https://github.com/camsaul/nesasm)
 - Emulator: [Nestopia](http://nestopia.sourceforge.net)
 
+*Note:* Add these to your `$PATH` to take advantage of build-and-run scripts.
+
 ### Recommended
 
 - Graphics Editor: [Tile Molester](http://www.romhacking.net/utilities/991/)
 - Text Editor: [Atom](https://atom.io)
-  - Syntax Highlighting: [Language-65ASM](https://atom.io/packages/language-65asm)
+  - Syntax Highlighting Package: [Language-65ASM](https://atom.io/packages/language-65asm)
 
 ### Installation Guides
 
