@@ -1,6 +1,6 @@
 # Sprites
 
-In this example, we will properly initialize the NES and draw two Mario sprites to the screen.
+In this example, we will properly initialize the NES and draw static Mario sprites to the screen.
 
 ## Instructions
 

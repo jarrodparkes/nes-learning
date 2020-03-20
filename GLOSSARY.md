@@ -21,6 +21,8 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
 
 - CHR (Character)
   - another word for a graphical tile
+- CIC (Checking Integrated Circuit)
+  - a special piece of hardware in the NES used to prevent pirated, non-licensed games from running on the system; "the lockout chip"
 - CPU (Central Processing Unit)
   - the central piece of hardware in a computer; the mechanism which controls a computer's operation
 
