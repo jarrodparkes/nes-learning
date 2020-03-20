@@ -19,4 +19,4 @@ A collection of NES programming lessons.
 
 ### Installation Guides
 
-- [Mac](http://thevirtualmountain.com/nes/2017/03/06/getting-started-with-nes-game-development.html )
+- [Mac](http://thevirtualmountain.com/nes/2017/03/06/getting-started-with-nes-game-development.html)
