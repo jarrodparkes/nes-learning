@@ -2,12 +2,12 @@
 
 ## Base-10
 
-[TBD]
+[TODO]
 
 ## Base-2 (Binary)
 
-[TBD]
+[TODO]
 
 ## Base-16 (Hexadecimal)
 
-[TBD]
+[TODO]

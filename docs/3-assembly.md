@@ -8,4 +8,4 @@ The NES, like all any computer, is a dumb machine. Its capabilities can be gross
 
 ## 6502 Assembly Crash Course
 
-[TBD]
+[TODO]

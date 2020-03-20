@@ -4,8 +4,8 @@ NES development is vastly different than writing modern software. There is no op
 
 ## Memory-Mapped Input/Output (I/O)
 
-[TBD]
+[TODO]
 
 ## The NES Memory Map
 
-[TBD]
+[TODO]

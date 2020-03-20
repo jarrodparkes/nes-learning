@@ -2,12 +2,12 @@
 
 ## Processor
 
-[TBD]
+[TODO]
 
 ## Memory
 
-[TBD]
+[TODO]
 
 ## ROM vs RAM
 
-[TBD]
+[TODO]
