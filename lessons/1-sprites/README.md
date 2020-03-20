@@ -15,10 +15,10 @@ Before beginning, you should be familiar with the following topics:
 
 ```bash
 # build
-nesasm sprite.asm
+nesasm sprites.asm
 
 # run
-Nestopia sprite.nes
+Nestopia sprites.nes
 
 # build-and-run
 ./build-and-run.sh
