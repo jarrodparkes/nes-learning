@@ -1,6 +1,6 @@
 # Tiles
 
-Sprites are for moving graphics. Tiles, or background tiles, are for non-moving static graphics. In this lesson, we will create a background composed of tiles, and we will draw a sprite on top of the background.
+Sprites are moving graphics. Tiles, or background tiles, are non-moving static graphics. In this example, we will create a background composed of tiles, and we will draw sprites on top of the background.
 
 ## Instructions
 

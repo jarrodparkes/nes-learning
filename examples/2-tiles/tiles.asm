@@ -7,6 +7,14 @@
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
+; [SEMANTICS]
+; Numbers prefixed with # should be interpreted as values (ex: #$40).
+; Numbers not prefixed with # should be interpreted as address (ex: $0005).
+; Numbers beginning with % are binary.
+; Numbers beginning with $ are hexadecimal.
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
 ; [SYSTEM VARIABLES]
 PPU_CTRL      EQU $2000
 PPU_MASK      EQU $2001
@@ -27,18 +35,20 @@ CTRL_PORT1    EQU $4016
   .bank 0
   .org $C000          ; start location of bank 0 ($C000 in CPU memory space)
 Reset:
-  SEI                 ; disable IRQs
+  SEI                 ; disable all CPU IRQs
   CLD                 ; disable decimal mode
   LDX #$40            ; X = %01000000
   STX PPU_FRAMECNT    ; disable APU frame IRQ
+ResetStack:
   LDX #$FF
-  TXS                 ; set up stack
+  TXS
+ResetMore:
   INX                 ; X = %00000000
-  STX PPU_CTRL        ; disable NMI (turn off vblank'ing)
+  STX PPU_CTRL        ; disable NMI/VBLANK
   STX PPU_MASK        ; disable rendering
   STX DMC_FREQ        ; disable DMC IRQs
 
-WaitVBlank1:          ; wait for vblank to make sure PPU is ready
+WaitVBlank1:          ; wait for VBLANK, to make sure PPU is ready
   BIT PPU_STATUS
   BPL WaitVBlank1
 
@@ -54,28 +64,28 @@ ClrMem:
   LDA #$FE
   STA $0200, x        ; move sprite off screen
   INX
-  BNE ClrMem
+  BNE ClrMem          ; keep looping until X = %00000000
 
-WaitVBlank2:          ; second wait for vblank, PPU is ready after this
+WaitVBlank2:          ; wait for VBLANK, PPU is ready after this
   BIT PPU_STATUS
   BPL WaitVBlank2
 
-LoadPalettes:
+PrepPaletteLoad:
   LDA PPU_STATUS      ; tell PPU to expect the high byte next
   LDA #$3F
   STA PPU_ADDR        ; write the high byte of $3F00 address
   LDA #$00
   STA PPU_ADDR        ; write the low byte of $3F00 address
-  LDX #$00
+  LDX #$00            ; now PPU_DATA is ready to accept data
 
-LoadPalLoop:
+LoadPalette:
   LDA Palette, x      ; load palette byte
   STA PPU_DATA        ; write to PPU
   INX                 ; set index to next byte
-  CPX #$20
-  BNE LoadPalLoop     ; if x = $20, 32 bytes copied, all done
+  CPX #$20            ; check if X == $20 (32)
+  BNE LoadPalette     ; keep looping until all 32 bytes are copied
 
-LoadMarioStanding:    ; draw each sprite moving from L-to-R, T-to-B
+LoadMarioStanding:    ; draw mario standing L-to-R, T-to-B
   LDA #$40            ; sprite 1
   STA $0200           ; set vertical position
   LDA #$60
@@ -147,7 +157,7 @@ LoadMarioStanding:    ; draw each sprite moving from L-to-R, T-to-B
   LDA #$00
   STA $021E
 
-LoadMarioRunning:     ; draw mario running
+LoadMarioRunning:     ; draw mario running L-to-R, T-to-B
   LDA #$40            ; sprite 9
   STA $0220
   LDA #$80
@@ -221,7 +231,7 @@ LoadMarioRunning:     ; draw mario running
   STA $023E
 
 FinishSprites:
-  LDA #%10000000      ; enable NMI so vblank'ing will start
+  LDA #%10000000      ; enable NMI/VBLANK
   STA PPU_CTRL
 
   LDA #%00010000      ; enable sprites
@@ -229,12 +239,15 @@ FinishSprites:
 
 Forever:
   JMP Forever         ; loop forever
+;------------------------------------------------------------------------------------------/
 
+;------------------------------------------------------------------------------------------\
+; [HELPERS]
 VBlankDetected:
   LDA #$00
-  STA $2003           ; set the low byte (00) of the RAM address
+  STA PPU_OAM_ADDR    ; write the low byte of $0200 address
   LDA #$02
-  STA $4014           ; set the high byte (02) of the RAM address, start the transfer
+  STA PPU_OAM_DMA     ; write the low byte of $0200 address, this starts DMA transfer
   RTI                 ; return from interrupt
 ;------------------------------------------------------------------------------------------/
 
@@ -243,8 +256,8 @@ VBlankDetected:
   .bank 1
   .org $E000
 Palette:
-  .db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
-  .db $0F,$17,$30,$0C,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
+  .db $22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18 ; tile palette
+  .db $22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18 ; sprite palette
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
