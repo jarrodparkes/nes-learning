@@ -28,6 +28,7 @@ PPU_OAM_DMA   EQU $4014
 PPU_FRAMECNT  EQU $4017
 DMC_FREQ      EQU $4010
 CTRL_PORT1    EQU $4016
+ZERO_PG_TMP   EQU $00F0
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
@@ -39,9 +40,11 @@ Reset:
   CLD                 ; disable decimal mode
   LDX #$40            ; X = %01000000
   STX PPU_FRAMECNT    ; disable APU frame IRQ
+
 ResetStack:
   LDX #$FF
   TXS
+
 ResetMore:
   INX                 ; X = %00000000
   STX PPU_CTRL        ; disable NMI/VBLANK
@@ -54,15 +57,15 @@ WaitVBlank1:          ; wait for VBLANK, to make sure PPU is ready
 
 ClrMem:
   LDA #$00            ; A = %00000000
-  STA $0000, x        ; zero out value at this address
-  STA $0100, x        ; zero out value at this address
-  STA $0300, x        ; zero out value at this address
-  STA $0400, x        ; zero out value at this address
-  STA $0500, x        ; zero out value at this address
-  STA $0600, x        ; zero out value at this address
-  STA $0700, x        ; zero out value at this address
+  STA $0000, X        ; zero out value at this address
+  STA $0100, X        ; zero out value at this address
+  STA $0300, X        ; zero out value at this address
+  STA $0400, X        ; zero out value at this address
+  STA $0500, X        ; zero out value at this address
+  STA $0600, X        ; zero out value at this address
+  STA $0700, X        ; zero out value at this address
   LDA #$FE
-  STA $0200, x        ; move sprite off screen
+  STA $0200, X        ; move sprite off screen
   INX
   BNE ClrMem          ; keep looping until X = %00000000
 
@@ -79,162 +82,48 @@ PrepPaletteLoad:
   LDX #$00            ; now PPU_DATA is ready to accept data
 
 LoadPalette:
-  LDA Palette, x      ; load palette byte
+  LDA Palette, X      ; load palette byte
   STA PPU_DATA        ; write to PPU
   INX                 ; set index to next byte
   CPX #$20            ; check if X == $20 (32)
   BNE LoadPalette     ; keep looping until all 32 bytes are copied
+  LDX #$00
 
-LoadMarioStanding:    ; draw mario standing L-to-R, T-to-B
-  LDA #$40            ; sprite 1
-  STA $0200           ; set vertical position
-  LDA #$60
-  STA $0203           ; set horizontal position
+LoadSprites:
+  LDA Sprites, X      ; load sprite byte
+  STA $0200, X        ; write sprite btye
+  INX                 ; set index to next byte
+  CPX #$10            ; check if X == $10 (16)
+  BNE LoadSprites     ; keep looping until all 16 bytes are copied
+
+PrepTileLoad:         ; update PPU_ADDR to load tiles and attrs
+  LDA PPU_STATUS      ; tell PPU to expect the high byte next
+  LDA #$20
+  STA PPU_ADDR        ; write the high byte of $2000 address
   LDA #$00
-  STA $0201           ; set tile
-  STA $0202           ; set color w/ no flipping
+  STA PPU_ADDR        ; write the low byte of $2000 address
+  LDX #$00            ; now PPU_DATA is ready to accept data
 
-  LDA #$40            ; sprite 2
-  STA $0204
-  LDA #$68
-  STA $0207
-  LDA #$01
-  STA $0205
-  LDA #$00
-  STA $0206
+LoadTiles:            ; loop and load all tile bytes, followed by attr bytes
+  LDX #LOW(Tiles)
+  LDY #HIGH(Tiles)
+  STX <ZERO_PG_TMP    ; write the low byte of tiles address to ZERO_PG_TMP
+  STY <ZERO_PG_TMP+1  ; write the high byte of tiles address to ZERO_PG_TMP+1
+  LDX #4              ; X = 4 (outer loop)
+  LDY #0              ; Y = 0 (inner loop)
+.1
+  LDA [ZERO_PG_TMP],Y ; load byte from address $[HIGH+LOW]
+  STA PPU_DATA        ; write to PPU
+  INY
+  BNE .1              ; keep looping until 256 bytes are copied
+  INC <ZERO_PG_TMP+1  ; outer loop finished
+  DEX
+  BNE .1              ; keep looping until all 1024 (256*4) bytes are copied
 
-  LDA #$48            ; sprite 3
-  STA $0208
-  LDA #$60
-  STA $020B
-  LDA #$02
-  STA $0209
-  LDA #$00
-  STA $020A
-
-  LDA #$48            ; sprite 4
-  STA $020C
-  LDA #$68
-  STA $020F
-  LDA #$03
-  STA $020D
-  LDA #$00
-  STA $020E
-
-  LDA #$50            ; sprite 5
-  STA $0210
-  LDA #$60
-  STA $0213
-  LDA #$04
-  STA $0211
-  LDA #$00
-  STA $0212
-
-  LDA #$50            ; sprite 6
-  STA $0214
-  LDA #$68
-  STA $0217
-  LDA #$05
-  STA $0215
-  LDA #$00
-  STA $0216
-
-  LDA #$58            ; sprite 7
-  STA $0218
-  LDA #$60
-  STA $021B
-  LDA #$06
-  STA $0219
-  LDA #$00
-  STA $021A
-
-  LDA #$58            ; sprite 8
-  STA $021C
-  LDA #$68
-  STA $021F
-  LDA #$07
-  STA $021D
-  LDA #$00
-  STA $021E
-
-LoadMarioRunning:     ; draw mario running L-to-R, T-to-B
-  LDA #$40            ; sprite 9
-  STA $0220
-  LDA #$80
-  STA $0223
-  LDA #$08
-  STA $0221
-  LDA #$00
-  STA $0222
-
-  LDA #$40            ; sprite 10
-  STA $0224
-  LDA #$88
-  STA $0227
-  LDA #$09
-  STA $0225
-  LDA #$00
-  STA $0226
-
-  LDA #$48            ; sprite 11
-  STA $0228
-  LDA #$80
-  STA $022B
-  LDA #$0A
-  STA $0229
-  LDA #$00
-  STA $022A
-
-  LDA #$48            ; sprite 12
-  STA $022C
-  LDA #$88
-  STA $022F
-  LDA #$0B
-  STA $022D
-  LDA #$00
-  STA $022E
-
-  LDA #$50            ; sprite 13
-  STA $0230
-  LDA #$80
-  STA $0233
-  LDA #$0C
-  STA $0231
-  LDA #$00
-  STA $0232
-
-  LDA #$50            ; sprite 14
-  STA $0234
-  LDA #$88
-  STA $0237
-  LDA #$0D
-  STA $0235
-  LDA #$00
-  STA $0236
-
-  LDA #$58            ; sprite 15
-  STA $0238
-  LDA #$80
-  STA $023B
-  LDA #$0E
-  STA $0239
-  LDA #$00
-  STA $023A
-
-  LDA #$58            ; sprite 16
-  STA $023C
-  LDA #$88
-  STA $023F
-  LDA #$0F
-  STA $023D
-  LDA #$00
-  STA $023E
-
-FinishSprites:
-  LDA #%10000000      ; enable NMI/VBLANK
+FinishGraphicInit:
+  LDA #%10010000      ; enable NMI/VBLANK, sprites from table 0, tiles from table 1
   STA PPU_CTRL
-
-  LDA #%00010000      ; enable sprites
+  LDA #%00011110      ; enable sprites, enable background, no clipping on left side
   STA PPU_MASK
 
 Forever:
@@ -242,12 +131,22 @@ Forever:
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
-; [HELPERS]
-VBlankDetected:
+; [NMI HANDLER]
+VBlankStarted:
   LDA #$00
   STA PPU_OAM_ADDR    ; write the low byte of $0200 address
   LDA #$02
-  STA PPU_OAM_DMA     ; write the low byte of $0200 address, this starts DMA transfer
+  STA PPU_OAM_DMA     ; write the low byte of $0200 address, start DMA transfer
+
+PrepGraphics:
+  LDA #%10010000      ; enable NMI/VBLANK, sprites from table 0, tiles from table 1
+  STA PPU_CTRL
+  LDA #%00011110      ; enable sprites, enable background, no clipping on left side
+  STA PPU_MASK
+  LDA #$00            ; tell PPU no background scrolling
+  STA PPU_SCROLL
+  STA PPU_SCROLL
+
   RTI                 ; return from interrupt
 ;------------------------------------------------------------------------------------------/
 
@@ -256,14 +155,90 @@ VBlankDetected:
   .bank 1
   .org $E000
 Palette:
-  .db $22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18 ; tile palette
+  .db $22,$29,$1A,$0F,$22,$36,$17,$0F,$22,$30,$21,$0F,$22,$27,$17,$0F ; tile palette
   .db $22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18,$22,$16,$38,$18 ; sprite palette
+
+Sprites:
+  .db $D0, $32, $00, $60 ; sprite 0
+  .db $D0, $33, $00, $68 ; sprite 1
+  .db $D8, $34, $00, $60 ; sprite 2
+  .db $D8, $35, $00, $68 ; sprite 3
+
+Tiles:
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24 ; $24 (sky)
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5 ; $B4/$B5 (block tops)
+  .db $B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5,$B4,$B5
+  .db $B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7 ; /$B6/$B7 (block bottoms)
+  .db $B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7,$B6,$B7
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
+  .db %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
 ; [SYSTEM INTERRUPTS]
   .org $FFFA
-  .dw VBlankDetected  ; if NMI occurs (once per frame if enabled), goto VBlankDetected
+  .dw VBlankStarted   ; if NMI occurs (once per frame if enabled), goto VBlankStarted
   .dw Reset           ; if system is reset, goto Reset
   .dw 0               ; external interrupt IRQ is not used in this tutorial
 ;------------------------------------------------------------------------------------------/

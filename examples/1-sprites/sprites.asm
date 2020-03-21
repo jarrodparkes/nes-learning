@@ -39,9 +39,11 @@ Reset:
   CLD                 ; disable decimal mode
   LDX #$40            ; X = %01000000
   STX PPU_FRAMECNT    ; disable APU frame IRQ
+
 ResetStack:
   LDX #$FF
   TXS
+
 ResetMore:
   INX                 ; X = %00000000
   STX PPU_CTRL        ; disable NMI/VBLANK
@@ -54,15 +56,15 @@ WaitVBlank1:          ; wait for VBLANK, to make sure PPU is ready
 
 ClrMem:
   LDA #$00            ; A = %00000000
-  STA $0000, x        ; zero out value at this address
-  STA $0100, x        ; zero out value at this address
-  STA $0300, x        ; zero out value at this address
-  STA $0400, x        ; zero out value at this address
-  STA $0500, x        ; zero out value at this address
-  STA $0600, x        ; zero out value at this address
-  STA $0700, x        ; zero out value at this address
+  STA $0000, X        ; zero out value at this address
+  STA $0100, X        ; zero out value at this address
+  STA $0300, X        ; zero out value at this address
+  STA $0400, X        ; zero out value at this address
+  STA $0500, X        ; zero out value at this address
+  STA $0600, X        ; zero out value at this address
+  STA $0700, X        ; zero out value at this address
   LDA #$FE
-  STA $0200, x        ; move sprite off screen
+  STA $0200, X        ; move sprite off screen
   INX
   BNE ClrMem          ; keep looping until X = %00000000
 
@@ -79,7 +81,7 @@ PrepPaletteLoad:
   LDX #$00            ; now PPU_DATA is ready to accept data
 
 LoadPalette:
-  LDA Palette, x      ; load palette byte
+  LDA Palette, X      ; load palette byte
   STA PPU_DATA        ; write to PPU
   INX                 ; set index to next byte
   CPX #$20            ; check if X == $20 (32)
@@ -242,12 +244,13 @@ Forever:
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
-; [HELPERS]
-VBlankDetected:
+; [NMI HANDLER]
+VBlankStarted:
   LDA #$00
   STA PPU_OAM_ADDR    ; write the low byte of $0200 address
   LDA #$02
   STA PPU_OAM_DMA     ; write the low byte of $0200 address, this starts DMA transfer
+
   RTI                 ; return from interrupt
 ;------------------------------------------------------------------------------------------/
 
@@ -263,7 +266,7 @@ Palette:
 ;------------------------------------------------------------------------------------------\
 ; [SYSTEM INTERRUPTS]
   .org $FFFA
-  .dw VBlankDetected  ; if NMI occurs (once per frame if enabled), goto VBlankDetected
+  .dw VBlankStarted  ; if NMI occurs (once per frame if enabled), goto VBlankStarted
   .dw Reset           ; if system is reset, goto Reset
   .dw 0               ; external interrupt IRQ is not used in this tutorial
 ;------------------------------------------------------------------------------------------/
