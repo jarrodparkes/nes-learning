@@ -9,6 +9,8 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
 
 ## A
 
+- [APU (Audio Processing Unit)](https://wiki.nesdev.com/w/index.php/APU)
+  - a special piece of hardware in the NES responsible for generating sound
 - ASM (Assembly)
   - human-readable code or coding languages that can be assembled into binary instructions that can control a CPU
 
@@ -30,8 +32,10 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
 
 - Dendy
   - a Russian clone of the [NES]
-- [DMA (Direct Memory Access)]()
+- DMA (Direct Memory Access)
   - a special hardware mechanism on the NES that allows for the quick transfer of graphical data to OAM
+- DMC (Delta Modulation Channel)
+  - one of the APU's audio channels often used for outputting percussion or voice sounds
 
 ## E
 
@@ -52,7 +56,9 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
 - I/O (Input/Output)
   - "things that can be taken in" (ex: user pressing a button) and "things that can be produced" (ex: a sprite rendered on screen)
 - Interrupt
-  - a special signal that can intercepted by a CPU
+  - a signal that can preempt a CPU's processing; a CPU signal that needs to be processed
+- IRQ (Interrupt Request)
+  - a signal on the NES CPU; used interchangeably with the word interrupt
 
 ## J
 
