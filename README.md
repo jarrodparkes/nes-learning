@@ -13,7 +13,9 @@ A collection of NES programming examples.
 
 ### Recommended
 
-- Graphics Editor: [Tile Molester](http://www.romhacking.net/utilities/991/)
+- Graphics Editors
+  - [Tile Molester](http://www.romhacking.net/utilities/991/)
+  - [TileEditorPro](http://www.yellokrow.com/AppPages/TileEditor.php)
 - Text Editor: [Atom](https://atom.io)
   - Syntax Highlighting Package: [Language-65ASM](https://atom.io/packages/language-65asm)
 
