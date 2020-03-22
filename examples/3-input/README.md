@@ -6,10 +6,10 @@ In this example, we will detect inputs from a controller.
 
 ```bash
 # build example
-nesasm tiles.asm
+nesasm input.asm
 
 # run example
-Nestopia tiles.nes
+Nestopia input.nes
 
 # build and run example
 ./build-and-run.sh

@@ -93,8 +93,8 @@ LoadSprites:
   LDA Sprites, X      ; load sprite byte
   STA $0200, X        ; write sprite btye
   INX                 ; set index to next byte
-  CPX #$10            ; check if X == $10 (16)
-  BNE LoadSprites     ; keep looping until all 16 bytes are copied
+  CPX #$30            ; check if X == $30 (48)
+  BNE LoadSprites     ; keep looping until all 48 bytes are copied
 
 PrepTileLoad:         ; update PPU_ADDR to load tiles and attrs
   LDA PPU_STATUS      ; tell PPU to expect the high byte next
@@ -133,10 +133,90 @@ Forever:
 ;------------------------------------------------------------------------------------------\
 ; [NMI HANDLER]
 VBlankStarted:
+DMATransfer:
   LDA #$00
   STA PPU_OAM_ADDR    ; write the low byte of $0200 address
   LDA #$02
   STA PPU_OAM_DMA     ; write the low byte of $0200 address, start DMA transfer
+
+PrepController:
+  LDA #$01            ; prep CTRL_PORT1
+  STA CTRL_PORT1
+  LDA #$00
+  STA CTRL_PORT1      ; now we're ready to read from CTRL_PORT1
+
+ReadButtons:          ; read one-at-a-time (A, B, Select, Start, Up, Down, Left, Right)
+ReadA:
+  LDA CTRL_PORT1      ; player 1
+  AND #%00000001      ; check A button
+  BEQ ReadADone       ; if A is not pressed, skip to ReadADone
+  LDA $0212
+  EOR #%00000001
+  STA $0212           ; if A is pressed, flip/flop sprite palette 0/1
+ReadADone:
+
+ReadB:
+  LDA CTRL_PORT1      ; player 1
+  AND #%00000001      ; check B button
+  BEQ ReadBDone       ; if B is not pressed, skip to ReadBDone
+  LDA $0216
+  EOR #%00000001
+  STA $0216           ; if B is pressed, flip/flop sprite palette 0/1
+ReadBDone:
+
+ReadSelect:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadSelectDone
+  LDA $021A
+  EOR #%00000001
+  STA $021A
+ReadSelectDone:
+
+ReadStart:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadStartDone
+  LDA $021E
+  EOR #%00000001
+  STA $021E
+ReadStartDone:
+
+ReadUp:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadUpDone
+  LDA $0222
+  EOR #%00000001
+  STA $0222
+ReadUpDone:
+
+ReadDown:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadDownDone
+  LDA $0226
+  EOR #%00000001
+  STA $0226
+ReadDownDone:
+
+ReadLeft:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadLeftDone
+  LDA $022A
+  EOR #%00000001
+  STA $022A
+ReadLeftDone:
+
+ReadRight:
+  LDA CTRL_PORT1
+  AND #%00000001
+  BEQ ReadRightDone
+  LDA $022E
+  EOR #%00000001
+  STA $022E
+ReadRightDone:
 
 PrepGraphics:
   LDA #%10010000      ; enable NMI/VBLANK, sprites from table 0, tiles from table 1
@@ -156,13 +236,21 @@ PrepGraphics:
   .org $E000
 Palette:
   .db $22,$29,$1A,$0F,$22,$36,$17,$0F,$22,$30,$21,$0F,$22,$27,$17,$0F ; tile palette
-  .db $22,$16,$27,$18,$22,$16,$27,$18,$22,$16,$27,$18,$22,$16,$27,$18 ; sprite palette
+  .db $22,$16,$27,$18,$22,$36,$17,$0F,$22,$30,$21,$0F,$22,$27,$17,$0F ; sprite palette
 
 Sprites:
   .db $C0, $32, $00, $40 ; sprite 0 (vertical, tile, settings, horizontal)
   .db $C0, $33, $00, $48 ; sprite 1
   .db $C8, $34, $00, $40 ; sprite 2
   .db $C8, $35, $00, $48 ; sprite 3
+  .db $27, $DA, $02, $40 ; A
+  .db $27, $DB, $02, $50 ; B
+  .db $27, $F8, $02, $60 ; Select
+  .db $27, $EC, $02, $70 ; Start
+  .db $27, $EE, $02, $80 ; U
+  .db $27, $DD, $02, $90 ; D
+  .db $27, $E5, $02, $A0 ; L
+  .db $27, $EB, $02, $B0 ; R
 
 Tiles:
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24 ; $24 (sky)
@@ -175,8 +263,8 @@ Tiles:
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$0A,$24,$0B,$24,$1E,$24,$0D,$24 ; input letters
-  .db $15,$24,$1B,$24,$1C,$24,$28,$24,$24,$24,$24,$24,$24,$24,$24,$24 ; input letters
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
@@ -247,5 +335,5 @@ Tiles:
 ; [CHR-ROM]
   .bank 2
   .org $0000
-  .incbin "mario.chr" ; include 8KB graphics file from SMB1
+  .incbin "mario-mod.chr" ; include 8KB graphics file from SMB1 (modified to visual letters as sprites)
 ;------------------------------------------------------------------------------------------/
