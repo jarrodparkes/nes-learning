@@ -2,6 +2,12 @@
 
 A collection of NES programming examples.
 
+## Contents
+
+- Docs: Long form content discussing topics relevant to learning how to build games for the NES.
+- Examples: Playable NES games with heavily commented source code.
+- Snippets: Reusable code patterns and tricks helpful for building NES games.
+
 ## Tools
 
 ### Required
