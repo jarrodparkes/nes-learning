@@ -35,7 +35,7 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
 - DMA (Direct Memory Access)
   - a special hardware mechanism on the NES that allows for the quick transfer of graphical data to OAM
 - DMC (Delta Modulation Channel)
-  - one of the APU's audio channels often used for outputting percussion or voice sounds
+  - a unique channel on the APU that plays samples (pre-recorded sounds) like percussion or voice sounds
 
 ## E
 
