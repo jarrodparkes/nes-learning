@@ -18,4 +18,4 @@ When a game is not in the middle of the action, like when a new level is being l
 
 ## Bulk Drawing
 
-TODO: [Continue paraphrasing this...](https://wiki.nesdev.com/w/index.php/The_frame_and_NMIs)
+[TODO]: [Continue paraphrasing this...](https://wiki.nesdev.com/w/index.php/The_frame_and_NMIs)

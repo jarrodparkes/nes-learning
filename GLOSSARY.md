@@ -27,6 +27,8 @@ You will find tons of acronyms and terms when developing for the NES. Below, are
   - a special piece of hardware in the NES used to prevent pirated, non-licensed games from running on the system; "the lockout chip"
 - CPU (Central Processing Unit)
   - the central piece of hardware in a computer; the mechanism which controls a computer's operation
+- Cycle
+  - the "heartbeat" of a CPU; all CPU operations (ex: LDA, STX) take a certain number of cycles to complete; a CPU's clock speed is a measure of how many cycles a CPU can perform per second
 
 ## D
 
