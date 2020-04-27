@@ -9,9 +9,21 @@
 ;------------------------------------------------------------------------------------------\
 ; [SEMANTICS]
 ; Numbers prefixed with # should be interpreted as values (ex: #$40).
-; Numbers not prefixed with # should be interpreted as address (ex: $0005).
+; Numbers not prefixed should be interpreted as addresses (ex: $0005).
 ; Numbers beginning with % are binary.
 ; Numbers beginning with $ are hexadecimal.
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
+; [CONSTANTS]
+BTN_A      = 1 << 7
+BTN_B      = 1 << 6
+BTN_SELECT = 1 << 5
+BTN_START  = 1 << 4
+BTN_UP     = 1 << 3
+BTN_DOWN   = 1 << 2
+BTN_LEFT   = 1 << 1
+BTN_RIGHT  = 1 << 0
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
@@ -29,6 +41,13 @@ PPU_FRAMECNT  EQU $4017
 DMC_FREQ      EQU $4010
 CTRL_PORT1    EQU $4016
 ZERO_PG_TMP   EQU $00F0
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
+; [ZERO-PAGE VARIABLES]
+CTRL_PREV1    EQU $FF		; controller 1 buttons that were held down last frame
+CTRL_DOWN1    EQU $FE		; controller 1 buttons that are held down this frame
+CTRL_TAPD1    EQU $FD		; controller 1 buttons that were tapped this frame
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
@@ -139,84 +158,17 @@ DMATransfer:
   LDA #$02
   STA PPU_OAM_DMA     ; write the low byte of $0200 address, start DMA transfer
 
-PrepController:
-  LDA #$01            ; prep CTRL_PORT1
-  STA CTRL_PORT1
-  LDA #$00
-  STA CTRL_PORT1      ; now we're ready to read from CTRL_PORT1
+UpdateCtrlState:      ; keep track of what was "just tapped" or is "held down"
+  LDA CTRL_DOWN1
+  STA CTRL_PREV1      ; store last frame's "held down" buttons
+  JSR ReadCtrl1       ; update "held down" buttons for this frame
+  LDA CTRL_PREV1      ; get last frame's "held down" buttons
+  EOR #%11111111      ; invert bits; any "NOT held down" buttons are 1
+  AND CTRL_DOWN1      ; "held down this frame" AND "NOT held down last frame"
+  STA CTRL_TAPD1
 
-ReadButtons:          ; read one-at-a-time (A, B, Select, Start, Up, Down, Left, Right)
-ReadA:
-  LDA CTRL_PORT1      ; player 1
-  AND #%00000001      ; check A button
-  BEQ ReadADone       ; if A is not pressed, skip to ReadADone
-  LDA $0212
-  EOR #%00000001
-  STA $0212           ; if A is pressed, flip/flop sprite palette 0/1
-ReadADone:
-
-ReadB:
-  LDA CTRL_PORT1      ; player 1
-  AND #%00000001      ; check B button
-  BEQ ReadBDone       ; if B is not pressed, skip to ReadBDone
-  LDA $0216
-  EOR #%00000001
-  STA $0216           ; if B is pressed, flip/flop sprite palette 0/1
-ReadBDone:
-
-ReadSelect:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadSelectDone
-  LDA $021A
-  EOR #%00000001
-  STA $021A
-ReadSelectDone:
-
-ReadStart:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadStartDone
-  LDA $021E
-  EOR #%00000001
-  STA $021E
-ReadStartDone:
-
-ReadUp:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadUpDone
-  LDA $0222
-  EOR #%00000001
-  STA $0222
-ReadUpDone:
-
-ReadDown:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadDownDone
-  LDA $0226
-  EOR #%00000001
-  STA $0226
-ReadDownDone:
-
-ReadLeft:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadLeftDone
-  LDA $022A
-  EOR #%00000001
-  STA $022A
-ReadLeftDone:
-
-ReadRight:
-  LDA CTRL_PORT1
-  AND #%00000001
-  BEQ ReadRightDone
-  LDA $022E
-  EOR #%00000001
-  STA $022E
-ReadRightDone:
+UpdateSprites:
+  JSR UpdateTapSprites
 
 PrepGraphics:
   LDA #%10010000      ; enable NMI/VBLANK, sprites from table 0, tiles from table 1
@@ -227,7 +179,88 @@ PrepGraphics:
   STA PPU_SCROLL
   STA PPU_SCROLL
 
+NMIHandlerDone:
   RTI                 ; return from interrupt
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
+; [READ CONTROLLER 1]
+ReadCtrl1:
+PrepCtrlRead:
+  LDA #$01
+  STA CTRL_PORT1      ; prep CTRL_PORT1
+  STA CTRL_DOWN1
+  LSR A
+  STA CTRL_PORT1      ; now we're ready to read all 8 buttons from CTRL_PORT1
+ReadButton:           ; read each button in order (A, B, Select, Start, U, D, L, R)
+  LDA CTRL_PORT1
+  LSR A
+  ROL CTRL_DOWN1
+  BCC ReadButton
+  RTS
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
+; [UPDATE TAPPED SPRITES]
+UpdateTapSprites:
+UpdateSpriteA:
+  LDA CTRL_TAPD1
+  AND #BTN_A
+  BEQ UpdateSpriteB
+  LDA $0212
+  EOR #%00000001
+  STA $0212           ; if A is pressed, flip/flop sprite palette 0/1
+UpdateSpriteB:
+  LDA CTRL_TAPD1
+  AND #BTN_B
+  BEQ UpdateSpriteSelect
+  LDA $0216
+  EOR #%00000001
+  STA $0216           ; if B is pressed, flip/flop sprite palette 0/1
+UpdateSpriteSelect:
+  LDA CTRL_TAPD1
+  AND #BTN_SELECT
+  BEQ UpdateSpriteStart
+  LDA $021A
+  EOR #%00000001
+  STA $021A           ; if Select is pressed, flip/flop sprite palette 0/1
+UpdateSpriteStart:
+  LDA CTRL_TAPD1
+  AND #BTN_START
+  BEQ UpdateSpriteUp
+  LDA $021E
+  EOR #%00000001
+  STA $021E           ; if Start is pressed, flip/flop sprite palette 0/1
+UpdateSpriteUp:
+  LDA CTRL_TAPD1
+  AND #BTN_UP
+  BEQ UpdateSpriteDown
+  LDA $0222
+  EOR #%00000001      ; if Up is pressed, flip/flop sprite palette 0/1
+  STA $0222
+UpdateSpriteDown:
+  LDA CTRL_TAPD1
+  AND #BTN_DOWN
+  BEQ UpdateSpriteLeft
+  LDA $0226
+  EOR #%00000001      ; if Down is pressed, flip/flop sprite palette 0/1
+  STA $0226
+UpdateSpriteLeft:
+  LDA CTRL_TAPD1
+  AND #BTN_LEFT
+  BEQ UpdateSpriteRight
+  LDA $022A
+  EOR #%00000001      ; if Left is pressed, flip/flop sprite palette 0/1
+  STA $022A
+UpdateSpriteRight:
+  LDA CTRL_TAPD1
+  AND #BTN_RIGHT
+  BEQ UpdateTapSpritesDone
+  LDA $022E
+  EOR #%00000001      ; if Right is pressed, flip/flop sprite palette 0/1
+  STA $022E
+UpdateTapSpritesDone:
+  RTS
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\

@@ -9,7 +9,7 @@
 ;------------------------------------------------------------------------------------------\
 ; [SEMANTICS]
 ; Numbers prefixed with # should be interpreted as values (ex: #$40).
-; Numbers not prefixed with # should be interpreted as address (ex: $0005).
+; Numbers not prefixed should be interpreted as addresses (ex: $0005).
 ; Numbers beginning with % are binary.
 ; Numbers beginning with $ are hexadecimal.
 ;------------------------------------------------------------------------------------------/
