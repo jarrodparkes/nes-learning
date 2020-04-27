@@ -48,6 +48,7 @@ ZERO_PG_TMP   EQU $00F0
 CTRL_PREV1    EQU $FF		; controller 1 buttons that were held down last frame
 CTRL_DOWN1    EQU $FE		; controller 1 buttons that are held down this frame
 CTRL_TAPD1    EQU $FD		; controller 1 buttons that were tapped this frame
+MARIO_X       EQU $FC   ; mario's x position
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
@@ -169,6 +170,7 @@ UpdateCtrlState:      ; keep track of what was "just tapped" or is "held down"
 
 UpdateSprites:
   JSR UpdateTapSprites
+  JSR MoveMario
 
 PrepGraphics:
   LDA #%10010000      ; enable NMI/VBLANK, sprites from table 0, tiles from table 1
@@ -260,6 +262,33 @@ UpdateSpriteRight:
   EOR #%00000001      ; if Right is pressed, flip/flop sprite palette 0/1
   STA $022E
 UpdateTapSpritesDone:
+  RTS
+;------------------------------------------------------------------------------------------/
+
+;------------------------------------------------------------------------------------------\
+; [MOVE MARIO]
+MoveMario:
+  LDX MARIO_X
+CalcMarioLeft:
+  LDA CTRL_DOWN1
+  AND #BTN_LEFT       ; is Left held down?
+  BEQ CalcMarioRight
+  DEX                 ; position.x - 1
+CalcMarioRight:
+  LDA CTRL_DOWN1
+  AND #BTN_RIGHT      ; is Right held down?
+  BEQ UpdateMarioPosition
+  INX                 ; position.x + 1
+UpdateMarioPosition:
+  TXA
+  STA $0203
+  STA $020B
+  TAX
+  CLC
+  ADC #$08
+  STA $0207
+  STA $020F
+  STX MARIO_X
   RTS
 ;------------------------------------------------------------------------------------------/
 
