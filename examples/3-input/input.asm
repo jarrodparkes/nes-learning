@@ -163,7 +163,7 @@ UpdateCtrlState:      ; keep track of what was "just tapped" or is "held down"
   STA CTRL_PREV1      ; store last frame's "held down" buttons
   JSR ReadCtrl1       ; update "held down" buttons for this frame
   LDA CTRL_PREV1      ; get last frame's "held down" buttons
-  EOR #%11111111      ; invert bits; any "NOT held down" buttons are 1
+  EOR #%11111111      ; invert bits; any "NOT held down" buttons from last frame are 1
   AND CTRL_DOWN1      ; "held down this frame" AND "NOT held down last frame"
   STA CTRL_TAPD1
 
