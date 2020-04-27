@@ -14,3 +14,7 @@ Nestopia input.nes
 # build and run example
 ./build-and-run.sh
 ```
+
+## Notes
+
+- I modified the original `mario.chr` file so that a few text characters (e.g. A, B, ...) appeared in the proper tile sheet. This is what allowed the text characters to be rendered as sprites for quick palette swapping.
