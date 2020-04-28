@@ -48,7 +48,8 @@ ZERO_PG_TMP   EQU $00F0
 CTRL_PREV1    EQU $FF		; controller 1 buttons that were held down last frame
 CTRL_DOWN1    EQU $FE		; controller 1 buttons that are held down this frame
 CTRL_TAPD1    EQU $FD		; controller 1 buttons that were tapped this frame
-MARIO_X       EQU $FC   ; mario's x position
+CTRL_RELE1    EQU $FC   ; controller 1 buttons that were release this frame
+MARIO_X       EQU $FB   ; mario's x position
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
@@ -163,14 +164,20 @@ DMATransfer:
   LDA #$02
   STA PPU_OAM_DMA     ; write the low byte of $0200 address, start DMA transfer
 
-UpdateCtrlState:      ; keep track of what was "just tapped" or is "held down"
+UpdateCtrlState:
   LDA CTRL_DOWN1
   STA CTRL_PREV1      ; store last frame's "held down" buttons
   JSR ReadCtrl1       ; update "held down" buttons for this frame
+UpdateCtrlTapped:
   LDA CTRL_PREV1      ; get last frame's "held down" buttons
   EOR #%11111111      ; invert bits; any "NOT held down" buttons from last frame are 1
   AND CTRL_DOWN1      ; "held down this frame" AND "NOT held down last frame"
   STA CTRL_TAPD1
+UpdateCtrlRelease:
+  LDA CTRL_DOWN1      ; get held down buttons
+  EOR #%11111111      ; invert bits; any "NOT held down" buttons from this frame are 1
+  AND CTRL_PREV1      ; "NOT held down this frame" AND "held down last frame"
+  STA CTRL_RELE1
 
 UpdateSprites:
   JSR UpdateTapSprites
@@ -207,63 +214,71 @@ ReadButton:           ; read each button in order (A, B, Select, Start, U, D, L,
 ;------------------------------------------------------------------------------------------/
 
 ;------------------------------------------------------------------------------------------\
-; [UPDATE TAPPED SPRITES]
+; [UPDATE TAP SPRITES]
 UpdateTapSprites:
 UpdateSpriteA:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_A
   BEQ UpdateSpriteB
   LDA $0212
   EOR #%00000001
-  STA $0212           ; if A is pressed, flip/flop sprite palette 0/1
+  STA $0212           ; if A is tapped/released, flip/flop sprite palette
 UpdateSpriteB:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_B
   BEQ UpdateSpriteSelect
   LDA $0216
   EOR #%00000001
-  STA $0216           ; if B is pressed, flip/flop sprite palette 0/1
+  STA $0216           ; if B is tapped/released, flip/flop sprite palette
 UpdateSpriteSelect:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_SELECT
   BEQ UpdateSpriteStart
   LDA $021A
   EOR #%00000001
-  STA $021A           ; if Select is pressed, flip/flop sprite palette 0/1
+  STA $021A           ; if Select is tapped/released, flip/flop sprite palette
 UpdateSpriteStart:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_START
   BEQ UpdateSpriteUp
   LDA $021E
   EOR #%00000001
-  STA $021E           ; if Start is pressed, flip/flop sprite palette 0/1
+  STA $021E           ; if Start is tapped/released, flip/flop sprite palette
 UpdateSpriteUp:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_UP
   BEQ UpdateSpriteDown
   LDA $0222
-  EOR #%00000001      ; if Up is pressed, flip/flop sprite palette 0/1
+  EOR #%00000001      ; if Up is tapped/released, flip/flop sprite palette
   STA $0222
 UpdateSpriteDown:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_DOWN
   BEQ UpdateSpriteLeft
   LDA $0226
-  EOR #%00000001      ; if Down is pressed, flip/flop sprite palette 0/1
+  EOR #%00000001      ; if Down is tapped/released, flip/flop sprite palette
   STA $0226
 UpdateSpriteLeft:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_LEFT
   BEQ UpdateSpriteRight
   LDA $022A
-  EOR #%00000001      ; if Left is pressed, flip/flop sprite palette 0/1
+  EOR #%00000001      ; if Left is tapped/released, flip/flop sprite palette
   STA $022A
 UpdateSpriteRight:
   LDA CTRL_TAPD1
+  ORA CTRL_RELE1
   AND #BTN_RIGHT
   BEQ UpdateTapSpritesDone
   LDA $022E
-  EOR #%00000001      ; if Right is pressed, flip/flop sprite palette 0/1
+  EOR #%00000001      ; if Right is tapped/released, flip/flop sprite palette
   STA $022E
 UpdateTapSpritesDone:
   RTS
